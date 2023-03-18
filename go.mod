@@ -1,4 +1,4 @@
-module github.com/dyng/nosdaily
+module github.com/dyng/nossence-algo
 
 go 1.18
 
