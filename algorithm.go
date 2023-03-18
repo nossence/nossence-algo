@@ -21,6 +21,12 @@ type FeedEntry struct {
 	Score     int       `json:"score"`
 }
 
+func NewEngine(driver neo4j.DriverWithContext) *Engine {
+	return &Engine{
+		driver: driver,
+	}
+}
+
 func (e *Engine) GetFeed(userPub string, start time.Time, end time.Time, limit int) []FeedEntry {
 	ctx := context.Background()
 
