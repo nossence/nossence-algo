@@ -36,10 +36,17 @@ func (e *Engine) GetFeed(userPub string, start time.Time, end time.Time, limit i
 	posts, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 		ctx := context.Background()
 
-		result, err := tx.Run(ctx, "match (p:Post) where p.created_at > $Start and p.created_at < $End optional match (r1:Post)-[:REPLY]->(p) optional match (r2:Post)-[:LIKE]->(p) optional match (r3:Post)-[:ZAP]->(p) with p, count(distinct r1.author)*15+count(distinct r2.author)*10+count(distinct r3.author)*50 as score order by score desc limit $Limit return p.id, p.kind, p.author, p.created_at, p.raw, score;",
+		result, err := tx.Run(ctx, `
+match (p:Post) where p.created_at > $Start and p.created_at < $End
+match (u:User)-[:CREATE]->(r:Post)-[l:REPLY|LIKE|ZAP]->(p)
+optional match (:User {pubkey: $Pubkey})-[s:SIMILAR]->(u:User)
+with p, sum((case when s is not null then s.score * 420 else 1 end) * (case when l:REPLY then 3 when l:LIEK then 2 when l:ZAP then 6 end)) as score
+order by score desc limit $Limit return p.id, p.kind, p.author, p.created_at, p.raw, score;
+`,
 			map[string]any{
 				"Start": start.Unix(),
 				"End":   end.Unix(),
+				"Pubkey": userPub,
 				"Limit": limit,
 			})
 
