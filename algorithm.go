@@ -17,7 +17,7 @@ type FeedEntry struct {
 	Kind      int       `json:"kind"`
 	Pubkey    string    `json:"pubkey"`
 	CreatedAt time.Time `json:"created_at"`
-	Score     int       `json:"score"`
+	Score     float64   `json:"score"`
 	Raw       string    `json:"raw"`
 }
 
@@ -40,14 +40,14 @@ func (e *Engine) GetFeed(userPub string, start time.Time, end time.Time, limit i
 match (p:Post) where p.created_at > $Start and p.created_at < $End
 match (u:User)-[:CREATE]->(r:Post)-[l:REPLY|LIKE|ZAP]->(p)
 optional match (:User {pubkey: $Pubkey})-[s:SIMILAR]->(u:User)
-with p, sum((case when s is not null then s.score * 420 else 1 end) * (case when l:REPLY then 3 when l:LIEK then 2 when l:ZAP then 6 end)) as score
+with p, sum((case when s is not null then s.score * 420 else 1.0 end) * (case when l:REPLY then 3 when l:LIEK then 2 when l:ZAP then 6 end)) as score
 order by score desc limit $Limit return p.id, p.kind, p.author, p.created_at, p.raw, score;
 `,
 			map[string]any{
-				"Start": start.Unix(),
-				"End":   end.Unix(),
+				"Start":  start.Unix(),
+				"End":    end.Unix(),
 				"Pubkey": userPub,
-				"Limit": limit,
+				"Limit":  limit,
 			})
 
 		if err != nil {
@@ -63,7 +63,7 @@ order by score desc limit $Limit return p.id, p.kind, p.author, p.created_at, p.
 				Pubkey:    record.Values[2].(string),
 				CreatedAt: time.Unix(record.Values[3].(int64), 0),
 				Raw:       record.Values[4].(string),
-				Score:     int(record.Values[5].(int64)),
+				Score:     record.Values[5].(float64),
 			}
 			posts = append(posts, post)
 		}
