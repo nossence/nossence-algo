@@ -38,8 +38,10 @@ func (e *Engine) GetFeed(userPub string, start time.Time, end time.Time, limit i
 		result, err := tx.Run(ctx, `
 match (p:Post) where p.created_at > $Start and p.created_at < $End
 match (u:User)-[:CREATE]->(r:Post)-[l:REPLY|LIKE|ZAP]->(p)
-optional match (:User {pubkey: $Pubkey})-[s:SIMILAR]->(u:User)
-with p, sum((case when s is not null then s.score * 420 else 1.0 end) * (case when l:REPLY then 3 when l:LIEK then 2 when l:ZAP then 6 end)) as score
+with p, collect(distinct u) as likers
+unwind likers as u
+optional match (:User {pubkey: $Pubkey})-[s:SIMILAR|FOLLOW]->(u:User)
+with p, sum(case when s:SIMILAR then s.score * 200 when s:FOLLOW then 20.0 else 1.0 end) as score
 order by score desc limit $Limit return p.id, p.kind, p.author, p.created_at, score;
 `,
 			map[string]any{
