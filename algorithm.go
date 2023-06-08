@@ -36,7 +36,9 @@ func (e *Engine) GetFeed(userPub string, start time.Time, end time.Time, limit i
 		ctx := context.Background()
 
 		result, err := tx.Run(ctx, `
-match (p:Post {kind:1}) where p.created_at > $Start and p.created_at < $End
+match (:User {pubkey: $Pubkey})-[:FOLLOW]->(u:User)
+with collect(u.pubkey) as following
+match (p:Post {kind:1}) where p.created_at > $Start and p.created_at < $End and not p.author in following
 match (u:User)-[:CREATE]->(r:Post)-[l:REPLY|LIKE|ZAP]->(p)
 with p, collect(distinct u) as likers
 unwind likers as u
